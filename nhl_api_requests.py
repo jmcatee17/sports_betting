@@ -171,6 +171,11 @@ for season in seasons:
 # Create a Pandas DataFrame from the skater data
 df_game_skater_stats = pd.DataFrame(skater_data)
 
+import pandas as pd
+import requests
+
+seasons = ['20202021', '20212022', '20222023',]
+
 # Define the NHL API endpoints
 NHL_API_URL = "https://statsapi.web.nhl.com/api/v1/"
 SCHEDULE_ENDPOINT = "schedule"
@@ -184,25 +189,24 @@ def fetch_game_ids(season, game_type):
     response = requests.get(url)
     data = response.json()
 
-    game_ids = []
+    game_id_map = {}
 
     for date in data["dates"]:
         for game in date["games"]:
-            game_ids.append(game["gamePk"])
+            game_id_map[game["gamePk"]] = [game["teams"]["away"]["team"]["id"], game["teams"]["home"]["team"]["id"]]
+    return game_id_map
 
-    return game_ids
+fetch_game_ids('20212022', 'R')
 
 # Function to fetch game teams stats for a specific game ID and team ID
-def fetch_game_teams_stats(game_id, team_id):
+def fetch_game_teams_stats(game_id, team_id, home_or_away):
     endpoint = f"{GAME_STATS_ENDPOINT}".format(game_id=game_id)
     url = f"{NHL_API_URL}{endpoint}"
 
     response = requests.get(url)
     data = response.json()
 
-    home_team_id = data["teams"]["home"]["team"]["id"]
-    away_team_id = data["teams"]["away"]["team"]["id"]
-    home_or_away = "home" if team_id == home_team_id else "away"
+    home_or_away = home_or_away
     
     # Calculate if the team won
     home_goals = data["teams"]["home"]["teamStats"]["teamSkaterStats"]["goals"]
@@ -215,10 +219,10 @@ def fetch_game_teams_stats(game_id, team_id):
         "HoA": home_or_away,
         "won": won,
         # "settled_in": data["decisions"]["winner"] if won else data["decisions"]["loser"],
-        "head_coach": data["teams"]["home"]["coaches"][0]["person"]["fullName"],
+        "head_coach": data["teams"][home_or_away]["coaches"][0]["person"]["fullName"],
         "goals": home_goals if home_or_away == "home" else away_goals,
         "shots": data["teams"][home_or_away]["teamStats"]["teamSkaterStats"]["shots"],
-        "hits": data["teams"][home_or_away]["teamStats"]["teamSkaterStats"]["hits"],
+        "hits": data["teams"][home_or_away]["teamStats"]["teamSkaterStats"].get("hits"),
         "pim": data["teams"][home_or_away]["teamStats"]["teamSkaterStats"]["pim"],
     }
 
@@ -232,15 +236,36 @@ all_data = []
 
 for season in seasons:
     for game_type in game_types:
-        game_ids = fetch_game_ids(season, game_type)
-        for game_id in game_ids:
-            # Fetch stats for both home and away teams
-            home_team_id = fetch_game_teams_stats(game_id, "home")
-            away_team_id = fetch_game_teams_stats(game_id, "away")
+        game_id_map = fetch_game_ids(season, game_type)
+        for game_id, team_ids in game_id_map.items():
             
+            # Fetch stats for both home and away teams
+            home_team_id = fetch_game_teams_stats(game_id, team_ids[1], "home")
+            away_team_id = fetch_game_teams_stats(game_id, team_ids[0], "away")
+
             # Append the stats for each team to the list
             all_data.append(home_team_id)
             all_data.append(away_team_id)
 
 # Create a DataFrame from the extracted data
-df_game_teams_stats = pd.DataFrame(all_data)
+df_game_team_stats = pd.DataFrame(all_data)
+
+# Define the CSV file path
+csv_file_path = 'game_teams_stats.csv'
+
+try:
+    existing_df = pd.read_csv(csv_file_path)
+except FileNotFoundError:
+    existing_df = pd.DataFrame()
+
+# Append the new data to the existing data
+combined_df_team_stats = existing_df.append(df_game_team_stats, ignore_index=True)
+
+# Remove duplicates based on the unique identifier ('id' and 'point' in this case)
+combined_df_team_stats.drop_duplicates(subset=['game_id', 'team_id'], keep='last', inplace=True)
+
+# Save the updated data to the CSV file
+combined_df_team_stats.to_csv(csv_file_path, index=False)
+
+# Display the updated DataFrame
+print(combined_df_team_stats)
