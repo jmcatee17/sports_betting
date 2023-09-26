@@ -5,8 +5,8 @@ import pandas as pd
 # Get Game ID List:
 api_endpoint = 'https://api-web.nhle.com/v1/schedule/'
 
-start_date = '2023-08-01'
-end_date = '2023-09-30'
+start_date = '2020-08-01'
+end_date = '2020-09-26'
 
 date_range = pd.date_range(start_date, end_date, 
               freq='W').strftime("%G-%m-%d").tolist()
@@ -34,7 +34,7 @@ for GAMEID in game_id_list:
     response = requests.get(api_url)
     data = response.json()
     
-    outcome_prefix = 'NULL' if data["gameState"] == 'FUT' else 'home win ' if data["homeTeam"]["score"] > data["awayTeam"]["score"] else 'away win'
+    outcome_prefix = None if data["gameState"] == 'FUT' else 'home win ' if data["homeTeam"]["score"] > data["awayTeam"]["score"] else 'away win'
     outcome_suffix = '' if data["gameState"] == 'FUT' else'REG' if len(data['boxscore']['linescore']['byPeriod']) == 3 else 'OT'
     
     game_stats_dict = {
@@ -44,8 +44,8 @@ for GAMEID in game_id_list:
         "date_time_GMT" : data["startTimeUTC"],
         "away_team_id" : str(data["awayTeam"]["id"]),
         "home_team_id" : str(data["homeTeam"]["id"]),
-        "away_goals" : data["awayTeam"]["score"] if data["gameState"] != 'FUT' else 'NULL',
-        "home_goals" : data["homeTeam"]["score"] if data["gameState"] != 'FUT' else 'NULL',
+        "away_goals" : data["awayTeam"]["score"] if data["gameState"] != 'FUT' else None,
+        "home_goals" : data["homeTeam"]["score"] if data["gameState"] != 'FUT' else None,
         "outcome" : outcome_prefix + outcome_suffix,
         "venue": data["venue"],
         "game_state" : data["gameState"]
@@ -59,11 +59,11 @@ for GAMEID in game_id_list:
             "game_id" : GAMEID,
             "team_id" : str(data["homeTeam"]["id"]),
             "HoA" : "home",
-            "won" : True if data["homeTeam"]["score"] > data["awayTeam"]["score"] else False,
+            "won" : None if data["homeTeam"].get("score") is None else True if data["homeTeam"].get("score") > data["awayTeam"].get("score") else False,
             "settled_in" : outcome_suffix,
             "head_coach" : data["boxscore"]["gameInfo"]["homeTeam"]["headCoach"],
             "goals" : data["homeTeam"]["score"],
-            "shots" : data["homeTeam"]["sog"],
+            "shots" : data["homeTeam"].get('sog'),
             "hits" : data["homeTeam"]["hits"],
             "pim" : data["homeTeam"]["pim"],
             "blocks" : data["homeTeam"]["blocks"],
@@ -75,11 +75,11 @@ for GAMEID in game_id_list:
             "game_id" : GAMEID,
             "team_id" : str(data["awayTeam"]["id"]),
             "HoA" : "away",
-            "won" : False if data["homeTeam"]["score"] > data["awayTeam"]["score"] else True,
+            "won" : None if data["homeTeam"].get("score") is None else False if data["homeTeam"].get("score") > data["awayTeam"].get("score") else True,
             "settled_in" : outcome_suffix,
             "head_coach" : data["boxscore"]["gameInfo"]["awayTeam"]["headCoach"],
             "goals" : data["awayTeam"]["score"],
-            "shots" : data["awayTeam"]["sog"],
+            "shots" : data["awayTeam"].get('sog'),
             "hits" : data["awayTeam"]["hits"],
             "pim" : data["awayTeam"]["pim"],
             "blocks" : data["awayTeam"]["blocks"],
@@ -159,5 +159,3 @@ df_game = pd.DataFrame(game_stats)
 df_game_team_stats = pd.DataFrame(game_team_stats)
 df_game_skater_stats = pd.DataFrame(game_skater_stats)
 df_game_goalie_stats = pd.DataFrame(game_goalie_stats)
-
-print(df_game.head())
