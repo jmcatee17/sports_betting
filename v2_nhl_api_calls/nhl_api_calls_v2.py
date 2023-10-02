@@ -2,15 +2,11 @@ import requests
 from datetime import datetime
 import pandas as pd
 
-# start_date = '2023-09-10'
-# end_date = '2023-09-28'
-
-def get_nhl_data(start_date, end_date):
+def get_nhl_data(start_date):
     # Get Game ID List:
-    api_endpoint = 'https://api-web.nhle.com/v1/schedule/'
-
-    date_range = pd.date_range(start_date, end_date, 
-                freq='W').strftime("%G-%m-%d").tolist()
+    # date_range = pd.date_range(start_date, end_date, 
+    #             freq='W').strftime("%G-%m-%d").tolist()
+    date_range = [start_date]
 
     game_id_list = []
     for date in date_range:
@@ -42,7 +38,7 @@ def get_nhl_data(start_date, end_date):
         game_stats_dict = {
             "game_id" : GAMEID,
             "season" : data["season"],
-            "type" : data["gameType"],
+            "type" : data.get("gameType"),
             "date_time_GMT" : data["startTimeUTC"],
             "away_team_id" : str(data["awayTeam"]["id"]),
             "home_team_id" : str(data["homeTeam"]["id"]),
