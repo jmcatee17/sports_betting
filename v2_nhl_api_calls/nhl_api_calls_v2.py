@@ -1,4 +1,3 @@
-import os
 import requests
 from datetime import datetime
 import pandas as pd
@@ -16,7 +15,7 @@ def get_nhl_data(start_date, end_date):
         for day in data['gameWeek']:
             for game in day['games']:
                 game_id_list.append(game['id'])
-                
+
     # Ensure no duplicates
     game_id_list = set(game_id_list)
 
@@ -48,7 +47,6 @@ def get_nhl_data(start_date, end_date):
             "venue": data["venue"],
             "game_state" : data["gameState"]
         }
-        
         game_stats.append(game_stats_dict)
         
         # Only append stats for games that have started
@@ -206,23 +204,27 @@ def update_maintained_game(nhl_api_calls_dict):
 
     ## Alter Historical Games Played:
     # Perform a left join using merge
-    merged_df = pd.merge(historical_game, day_before_game, on='game_id', how='left')
+    merged_df = pd.merge(historical_game, day_before_game_completed, on='game_id', how='outer', suffixes=('_x', '_y'))
 
     # Use fillna to fill missing values in value_left column with values from merged_df
-    historical_game['home_goals'] = historical_game['home_goals'].fillna(merged_df['home_goals_y'])
-    historical_game['away_goals'] = historical_game['away_goals'].fillna(merged_df['away_goals_y'])
-    historical_game['outcome'] = historical_game['outcome'].fillna(merged_df['outcome_y'])
+    merged_df['home_goals'] = merged_df['home_goals_x'].fillna(merged_df['home_goals_y'] if 'home_goals_y' in merged_df.columns else merged_df['home_goals'])
+    merged_df['away_goals'] = merged_df['away_goals_x'].fillna(merged_df['away_goals_y'] if 'away_goals_y' in merged_df.columns else merged_df['away_goals'])
+    merged_df['outcome'] = merged_df['outcome_x'].fillna(merged_df['outcome_y'] if 'outcome_y' in merged_df.columns else merged_df['outcome'])
+
+    for column in ["season", "type", "date_time_GMT", "away_team_id", "home_team_id", "venue", "game_state"]:
+        merged_df[column] = merged_df[column + '_x'].fillna(merged_df[column + '_y'])
 
     # Alter values in the 'game_state' for the rows that were joined
-    historical_game.loc[(historical_game['game_id'].isin(day_before_game_completed['game_id'])) & (historical_game['type'] == 'PR'), 'game_state'] = 'OFF'
-    historical_game.loc[(historical_game['game_id'].isin(day_before_game_completed['game_id'])) & ((historical_game['type'] == 'R') | (historical_game['type'] == 'P') | (historical_game['type'] == '!')), 'game_state'] = 'FINAL'
+    merged_df.loc[(merged_df['game_id'].isin(day_before_game_completed['game_id'])) & (merged_df['type_x'] == 'PR'), 'game_state_x'] = 'OFF'
+    merged_df.loc[(historical_game['game_id'].isin(day_before_game_completed['game_id'])) & ((merged_df['type_x'] == 'R') | (merged_df['type_x'] == 'P') | (merged_df['type_x'] == '!')), 'game_state_x'] = 'FINAL'
 
     ## Append Upcoming Games for the Week:
     day_before_game_future = day_before_game[(day_before_game.game_state == 'FUT')]
-    updated_game = result_df = pd.concat([historical_game, day_before_game_future])
+    merged_df = merged_df[["game_id", "season", "type", "date_time_GMT", "away_team_id", "home_team_id", "away_goals", "home_goals", "outcome", "venue", "game_state"]]
+    updated_game = pd.concat([merged_df, day_before_game_future])
 
     ## Drop Duplicates
-    updated_game = updated_game.drop_duplicates().reset_index()
+    updated_game = updated_game.drop_duplicates().reset_index(drop=True)
 
     return updated_game
 
@@ -234,7 +236,7 @@ def update_maintained_game_teams_stats(nhl_api_calls_dict):
     updated_game_teams_stats = pd.concat([historical_game_teams_stats, addition_game_teams_stats])
 
     ## Drop Duplicates
-    updated_game_teams_stats = updated_game_teams_stats.drop_duplicates().reset_index()
+    updated_game_teams_stats = updated_game_teams_stats.drop_duplicates().reset_index(drop=True)
 
     return updated_game_teams_stats
 
@@ -246,7 +248,7 @@ def update_maintained_game_skater_stats(nhl_api_calls_dict):
     updated_game_skater_stats = pd.concat([historical_game_skater_stats, addition_game_skater_stats])
 
     ## Drop Duplicates
-    updated_game_skater_stats = updated_game_skater_stats.drop_duplicates().reset_index()
+    updated_game_skater_stats = updated_game_skater_stats.drop_duplicates().reset_index(drop=True)
 
     return updated_game_skater_stats
 
@@ -258,6 +260,6 @@ def update_maintained_game_goalie_stats(nhl_api_calls_dict):
     updated_game_goalie_stats = pd.concat([historical_game_goalie_stats, addition_game_goalie_stats])
 
     ## Drop Duplicates
-    updated_game_goalie_stats = updated_game_goalie_stats.drop_duplicates().reset_index()
+    updated_game_goalie_stats = updated_game_goalie_stats.drop_duplicates().reset_index(drop=True)
 
     return updated_game_goalie_stats
