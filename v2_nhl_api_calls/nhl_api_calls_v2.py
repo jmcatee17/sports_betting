@@ -1,3 +1,4 @@
+import os
 import requests
 from datetime import datetime
 import pandas as pd
@@ -166,8 +167,11 @@ def get_nhl_data(start_date, end_date):
     # Use the replace method to replace values in the column
     df_game['type'] = df_game['type'].replace(replacement_dict)
 
-    # Get Selected API Columns and drop duplicate
+    # Get Selected API Columns and drop duplicates
     df_game = df_game[['game_id', 'season', 'type', 'date_time_GMT', 'away_team_id', 'home_team_id', 'away_goals', 'home_goals', 'outcome', 'venue', 'game_state']]
+    
+    # Turn dict into string so duplicates can be dropped:
+    df_game['venue'] = df_game['venue'].apply(lambda x: x['default'])
     df_game = df_game.drop_duplicates()
 
     # Only append stats for games that have started
@@ -175,6 +179,9 @@ def get_nhl_data(start_date, end_date):
     df_game_teams_stats['powerPlayOpportunities'] = df_game_teams_stats['powerPlayConversion'].apply(lambda x: x.split('/')[0]).astype(int)
     df_game_teams_stats['powerPlayGoals'] = df_game_teams_stats['powerPlayConversion'].apply(lambda x: x.split('/')[1]).astype(int)
     df_game_teams_stats = df_game_teams_stats[['game_id', 'team_id', 'HoA', 'won', 'settled_in', 'head_coach', 'goals', 'shots', 'hits', 'pim', 'blocks', 'faceoffWinningPctg', 'powerPlayOpportunities', 'powerPlayGoals']]
+    
+    # Turn dict into string so duplicates can be dropped:
+    df_game_teams_stats['head_coach'] = df_game_teams_stats['head_coach'].apply(lambda x: x['default'])
     df_game_teams_stats = df_game_teams_stats.drop_duplicates()
 
     ## 3: df_game_skater_stats
