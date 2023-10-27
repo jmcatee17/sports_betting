@@ -1,21 +1,22 @@
 import os
-from nhl_api_calls_v2 import get_nhl_data
-from nhl_api_calls_v2 import (update_maintained_game, 
-                                         update_maintained_game_teams_stats, 
-                                         update_maintained_game_skater_stats, 
-                                         update_maintained_game_goalie_stats)
+from nhl_api_calls_v2 import (get_nhl_data,
+                            update_maintained_game, 
+                            update_maintained_game_teams_stats, 
+                            update_maintained_game_skater_stats, 
+                            update_maintained_game_goalie_stats)
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Identify Working Directory
 os.chdir('/Users/jdmcatee/Desktop/sports_betting/data/maintained_tables')
 
 # Get each days data:
-# start_date = datetime.today().strftime('%Y-%m-%d')
-# end_date = datetime.today().strftime('%Y-%m-%d')
+start_date = datetime.today() - timedelta(days=1)
+start_date = start_date.strftime('%Y-%m-%d')
+end_date = datetime.today().strftime('%Y-%m-%d')
 
 # Get updated data for start date and end date
-nhl_api_calls_dict = get_nhl_data(start_date = '2023-10-21', end_date = '2023-10-21')
+nhl_api_calls_dict = get_nhl_data(start_date = start_date, end_date = end_date)
 
 # Update Pandas Data Frames to include all information
 df_updated_game = update_maintained_game(nhl_api_calls_dict = nhl_api_calls_dict)
