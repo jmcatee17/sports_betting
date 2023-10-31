@@ -210,13 +210,14 @@ def update_maintained_game(nhl_api_calls_dict):
     merged_df['home_goals'] = merged_df['home_goals_x'].fillna(merged_df['home_goals_y'] if 'home_goals_y' in merged_df.columns else merged_df['home_goals'])
     merged_df['away_goals'] = merged_df['away_goals_x'].fillna(merged_df['away_goals_y'] if 'away_goals_y' in merged_df.columns else merged_df['away_goals'])
     merged_df['outcome'] = merged_df['outcome_x'].fillna(merged_df['outcome_y'] if 'outcome_y' in merged_df.columns else merged_df['outcome'])
+    merged_df['game_state'] = merged_df['game_state_x'].fillna(merged_df['game_state_y'] if 'game_state_y' in merged_df.columns else merged_df['game_state'])
 
-    for column in ["season", "type", "date_time_GMT", "away_team_id", "home_team_id", "venue", "game_state"]:
+    for column in ["season", "type", "date_time_GMT", "away_team_id", "home_team_id", "venue"]:
         merged_df[column] = merged_df[column + '_x'].fillna(merged_df[column + '_y'])
 
-    # Alter values in the 'game_state' for the rows that were joined
-    merged_df.loc[(merged_df['game_id'].isin(day_before_game_completed['game_id'])) & (merged_df['type_x'] == 'PR'), 'game_state_x'] = 'OFF'
-    merged_df.loc[(historical_game['game_id'].isin(day_before_game_completed['game_id'])) & ((merged_df['type_x'] == 'R') | (merged_df['type_x'] == 'P') | (merged_df['type_x'] == '!')), 'game_state_x'] = 'FINAL'
+    # # Alter values in the 'game_state' for the rows that were joined
+    # merged_df.loc[(merged_df['game_id'].isin(day_before_game_completed['game_id'])) & (merged_df['type_x'] == 'PR'), 'game_state_x'] = 'OFF'
+    # merged_df.loc[(historical_game['game_id'].isin(day_before_game_completed['game_id'])) & ((merged_df['type_x'] == 'R') | (merged_df['type_x'] == 'P') | (merged_df['type_x'] == '!')), 'game_state_x'] = 'FINAL'
 
     ## Append Upcoming Games for the Week:
     day_before_game_future = day_before_game[(day_before_game.game_state == 'FUT')]
