@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 os.chdir('/Users/jdmcatee/Desktop/sports_betting/data/maintained_tables')
 
 # Get each days data:
-start_date = datetime.today() - timedelta(days=5)
+start_date = datetime.today() - timedelta(days=1)
 end_date = datetime.today().strftime('%Y-%m-%d')
 
 # Get updated data for start date and end date
