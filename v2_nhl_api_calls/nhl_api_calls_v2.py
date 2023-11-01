@@ -199,18 +199,18 @@ def get_nhl_data(start_date, end_date):
 
 def update_maintained_game(nhl_api_calls_dict):
     historical_game = pd.read_csv('fct_maintained_game.csv')
-    day_before_game = nhl_api_calls_dict['df_game']
-    day_before_game_completed = day_before_game[(day_before_game.game_state == 'FINAL') | (day_before_game.game_state == 'OFF')]
+    updated_game = nhl_api_calls_dict['df_game']
+    # day_before_game_completed = day_before_game[(day_before_game.game_state == 'FINAL') | (day_before_game.game_state == 'OFF')]
 
     ## Alter Historical Games Played:
     # Perform a left join using merge
-    merged_df = pd.merge(historical_game, day_before_game_completed, on='game_id', how='outer', suffixes=('_x', '_y'))
+    merged_df = pd.merge(historical_game, updated_game, on='game_id', how='outer', suffixes=('_x', '_y'))
 
     # Use fillna to fill missing values in value_left column with values from merged_df
     merged_df['home_goals'] = merged_df['home_goals_x'].fillna(merged_df['home_goals_y'] if 'home_goals_y' in merged_df.columns else merged_df['home_goals'])
     merged_df['away_goals'] = merged_df['away_goals_x'].fillna(merged_df['away_goals_y'] if 'away_goals_y' in merged_df.columns else merged_df['away_goals'])
     merged_df['outcome'] = merged_df['outcome_x'].fillna(merged_df['outcome_y'] if 'outcome_y' in merged_df.columns else merged_df['outcome'])
-    merged_df['game_state'] = merged_df['game_state_x'].fillna(merged_df['game_state_y'] if 'game_state_y' in merged_df.columns else merged_df['game_state'])
+    merged_df['game_state'] = merged_df['game_state_y'].fillna(merged_df['game_state_x'] if 'game_state_y' in merged_df.columns else merged_df['game_state'])
 
     for column in ["season", "type", "date_time_GMT", "away_team_id", "home_team_id", "venue"]:
         merged_df[column] = merged_df[column + '_x'].fillna(merged_df[column + '_y'])
@@ -220,12 +220,13 @@ def update_maintained_game(nhl_api_calls_dict):
     # merged_df.loc[(historical_game['game_id'].isin(day_before_game_completed['game_id'])) & ((merged_df['type_x'] == 'R') | (merged_df['type_x'] == 'P') | (merged_df['type_x'] == '!')), 'game_state_x'] = 'FINAL'
 
     ## Append Upcoming Games for the Week:
-    day_before_game_future = day_before_game[(day_before_game.game_state == 'FUT')]
+    # day_before_game_future = day_before_game[(day_before_game.game_state == 'FUT')]
     merged_df = merged_df[["game_id", "season", "type", "date_time_GMT", "away_team_id", "home_team_id", "away_goals", "home_goals", "outcome", "venue", "game_state"]]
-    updated_game = pd.concat([merged_df, day_before_game_future])
+    # updated_game = pd.concat([merged_df, day_before_game_future])
 
     ## Drop Duplicates
-    updated_game = updated_game.drop_duplicates().reset_index(drop=True)
+    # updated_game = updated_game.drop_duplicates().reset_index(drop=True)
+    updated_game = merged_df.drop_duplicates().reset_index(drop=True)
 
     return updated_game
 
