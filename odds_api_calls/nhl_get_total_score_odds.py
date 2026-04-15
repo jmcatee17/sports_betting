@@ -9,7 +9,7 @@ os.chdir('/Users/jdmcatee/Desktop/Sports Betting')
 
 # An api key is emailed to you when you sign up to a plan
 # Get a free API key at https://api.the-odds-api.com/
-API_KEY = 'cdac905fd386c9776b2817e34b2b2224'
+API_KEY = ''
 
 SPORT = 'icehockey_nhl' # use the sport_key from the /sports endpoint below, or use 'upcoming' to see the next 8 games across all sports
 
